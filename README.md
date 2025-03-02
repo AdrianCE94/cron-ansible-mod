@@ -231,7 +231,7 @@ ansible_become_method=sudo
 
 ## Instrucciones para probar en tu servidor
 
-1. Clona este repositorio en tu máquina local
+1. Clona este repositorio en tu máquina local, encontrarás la carpeta files con los playbooks y los scripts usados.
 2. Modifica el archivo `inventory.ini` con la información de tu servidor
 3. Ejecuta alguno de los ejemplos:
 
