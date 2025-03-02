@@ -1,0 +1,55 @@
+---
+# ejemplo2-cron-avanzado.yml
+# Este playbook muestra características avanzadas del módulo cron:
+# - Crear tareas para un usuario específico
+# - Configurar variables de entorno
+# - Usar expresiones crontab completas
+# - Eliminar tareas existentes
+
+- name: Gestión avanzada de tareas cron
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Crear usuario para tareas programadas
+      user:
+        name: cronuser
+        comment: "Usuario para tareas cron"
+        shell: /bin/bash
+        state: present
+        
+    - name: Crear directorio para logs
+      file:
+        path: /var/log/cron-tasks
+        state: directory
+        owner: cronuser
+        group: cronuser
+        mode: '0755'
+        
+    - name: Establecer tarea cron con variables de entorno
+      cron:
+        name: "Backup semanal"
+        user: cronuser
+        weekday: "0"    # Domingo
+        hour: "3"
+        minute: "30"
+        job: "/usr/local/scripts/backup.sh /home /backup"
+        cron_file: weekly-backup
+        env:
+          BACKUP_OPTS: "--compress --exclude-vcs"
+          LOG_LEVEL: "info"
+        state: present
+        
+    - name: Añadir tarea con expresión crontab completa
+      cron:
+        name: "Monitoreo de recursos"
+        user: cronuser
+        cron_file: monitoring
+        job: "/usr/local/scripts/monitor-resources.sh > /var/log/cron-tasks/monitor.log 2>&1"
+        minute: "*/15"    # Cada 15 minutos
+        state: present
+        
+    - name: Eliminar tarea antigua que ya no es necesaria
+      cron:
+        name: "Tarea obsoleta"
+        state: absent

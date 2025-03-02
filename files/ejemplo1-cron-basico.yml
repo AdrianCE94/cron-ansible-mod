@@ -1,0 +1,32 @@
+---
+# ejemplo1-cron-basico.yml
+# Este playbook crea una tarea cron básica que ejecuta un script de limpieza diariamente
+
+- name: Configuración de tarea cron básica
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Crear directorio para scripts
+      file:
+        path: /usr/local/scripts
+        state: directory
+        mode: '0755'
+        
+    - name: Crear script de limpieza
+      copy:
+        content: |
+          #!/bin/bash
+          echo "Iniciando limpieza de archivos temporales..."
+          find /tmp -type f -mtime +7 -delete
+          echo "Limpieza completada a las $(date)" >> /var/log/limpieza.log
+        dest: /usr/local/scripts/limpieza_tmp.sh
+        mode: '0755'
+        
+    - name: Configurar tarea cron para ejecutar el script diariamente a las 2 AM
+      cron:
+        name: "Limpieza diaria de archivos temporales"
+        hour: "2"
+        minute: "0"
+        job: "/usr/local/scripts/limpieza_tmp.sh"
+        state: present

@@ -1,0 +1,268 @@
+---
+# instalar-scripts.yml
+# Este playbook instala todos los scripts necesarios para los ejemplos
+
+- name: Instalar scripts necesarios para ejemplos cron
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Crear directorio para scripts
+      file:
+        path: /usr/local/scripts
+        state: directory
+        mode: '0755'
+    
+    - name: Crear script de backup
+      copy:
+        dest: /usr/local/scripts/backup.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Script de backup para ejemplo2-cron-avanzado.yml
+          # Uso: backup.sh <directorio_origen> <directorio_destino>
+          
+          # Obtener variables de entorno establecidas por la tarea cron
+          BACKUP_OPTS=${BACKUP_OPTS:-"--compress"}
+          LOG_LEVEL=${LOG_LEVEL:-"info"}
+          
+          # Obtener argumentos
+          SOURCE_DIR=$1
+          DEST_DIR=$2
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          BACKUP_FILE="${DEST_DIR}/backup_${TIMESTAMP}.tar.gz"
+          LOG_FILE="/var/log/cron-tasks/backup_${TIMESTAMP}.log"
+          
+          # Validar argumentos
+          if [ -z "$SOURCE_DIR" ] || [ -z "$DEST_DIR" ]; then
+              echo "Error: Se requieren directorio origen y destino" | tee -a "$LOG_FILE"
+              echo "Uso: backup.sh <directorio_origen> <directorio_destino>" | tee -a "$LOG_FILE"
+              exit 1
+          fi
+          
+          # Crear directorio de destino si no existe
+          mkdir -p "$DEST_DIR"
+          
+          # Registrar inicio de backup
+          echo "[$(date)] Iniciando backup de $SOURCE_DIR a $BACKUP_FILE" | tee -a "$LOG_FILE"
+          echo "[$(date)] Nivel de log: $LOG_LEVEL" | tee -a "$LOG_FILE"
+          echo "[$(date)] Opciones: $BACKUP_OPTS" | tee -a "$LOG_FILE"
+          
+          # Realizar backup
+          if [[ "$BACKUP_OPTS" == *"--compress"* ]]; then
+              tar -czf "$BACKUP_FILE" -C "$(dirname "$SOURCE_DIR")" "$(basename "$SOURCE_DIR")" 2>> "$LOG_FILE"
+          else
+              tar -cf "$BACKUP_FILE" -C "$(dirname "$SOURCE_DIR")" "$(basename "$SOURCE_DIR")" 2>> "$LOG_FILE"
+          fi
+          
+          # Verificar resultado
+          if [ $? -eq 0 ]; then
+              echo "[$(date)] Backup completado con éxito: $BACKUP_FILE" | tee -a "$LOG_FILE"
+              echo "[$(date)] Tamaño: $(du -h "$BACKUP_FILE" | cut -f1)" | tee -a "$LOG_FILE"
+          else
+              echo "[$(date)] Error al crear backup" | tee -a "$LOG_FILE"
+              exit 1
+          fi
+          
+          exit 0
+    
+    - name: Crear script de monitoreo de recursos
+      copy:
+        dest: /usr/local/scripts/monitor-resources.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Script de monitoreo de recursos para ejemplo2-cron-avanzado.yml
+          
+          # Configuración
+          LOG_FILE="/var/log/cron-tasks/monitor.log"
+          TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+          
+          # Crear encabezado
+          echo "===================================================" >> "$LOG_FILE"
+          echo "Informe de recursos del sistema - $TIMESTAMP" >> "$LOG_FILE"
+          echo "===================================================" >> "$LOG_FILE"
+          
+          # Información básica del sistema
+          echo "" >> "$LOG_FILE"
+          echo "Información del sistema:" >> "$LOG_FILE"
+          echo "-------------------------" >> "$LOG_FILE"
+          hostname -f >> "$LOG_FILE"
+          uname -a >> "$LOG_FILE"
+          uptime >> "$LOG_FILE"
+          
+          # Uso de CPU
+          echo "" >> "$LOG_FILE"
+          echo "Uso de CPU:" >> "$LOG_FILE"
+          echo "-----------" >> "$LOG_FILE"
+          top -bn1 | head -20 >> "$LOG_FILE"
+          
+          # Uso de memoria
+          echo "" >> "$LOG_FILE"
+          echo "Uso de memoria:" >> "$LOG_FILE"
+          echo "--------------" >> "$LOG_FILE"
+          free -h >> "$LOG_FILE"
+          
+          # Uso de disco
+          echo "" >> "$LOG_FILE"
+          echo "Uso de disco:" >> "$LOG_FILE"
+          echo "------------" >> "$LOG_FILE"
+          df -h >> "$LOG_FILE"
+          
+          # Procesos que consumen más recursos
+          echo "" >> "$LOG_FILE"
+          echo "Top 10 procesos por uso de CPU:" >> "$LOG_FILE"
+          echo "-----------------------------" >> "$LOG_FILE"
+          ps aux --sort=-%cpu | head -11 >> "$LOG_FILE"
+          
+          echo "" >> "$LOG_FILE"
+          echo "Top 10 procesos por uso de memoria:" >> "$LOG_FILE"
+          echo "---------------------------------" >> "$LOG_FILE"
+          ps aux --sort=-%mem | head -11 >> "$LOG_FILE"
+          
+          # Conexiones de red
+          echo "" >> "$LOG_FILE"
+          echo "Conexiones de red activas:" >> "$LOG_FILE"
+          echo "-------------------------" >> "$LOG_FILE"
+          netstat -tuln | head -20 >> "$LOG_FILE"
+          
+          echo "" >> "$LOG_FILE"
+          echo "Monitoreo completado: $TIMESTAMP" >> "$LOG_FILE"
+          echo "===================================================" >> "$LOG_FILE"
+          echo "" >> "$LOG_FILE"
+          
+          exit 0
+    
+    - name: Crear script de mantenimiento mensual
+      copy:
+        dest: /usr/local/scripts/monthly-maintenance.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Script de mantenimiento mensual para ejemplo3-cron-reboot.yml
+          
+          LOG_FILE="/var/log/monthly-maintenance.log"
+          TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+          
+          # Función para registrar mensajes
+          log_message() {
+              echo "[$(date +"%Y-%m-%d %H:%M:%S")] $1" | tee -a "$LOG_FILE"
+          }
+          
+          # Crear encabezado en el log
+          log_message "==================================================="
+          log_message "Iniciando mantenimiento mensual del sistema"
+          log_message "==================================================="
+          
+          # 1. Actualizar paquetes del sistema (para sistemas basados en Debian/Ubuntu)
+          if command -v apt > /dev/null; then
+              log_message "Actualizando lista de paquetes..."
+              apt-get update >> "$LOG_FILE" 2>&1
+              
+              log_message "Actualizando paquetes del sistema..."
+              apt-get -y upgrade >> "$LOG_FILE" 2>&1
+          # Para sistemas basados en Red Hat/CentOS
+          elif command -v yum > /dev/null; then
+              log_message "Actualizando paquetes del sistema..."
+              yum -y update >> "$LOG_FILE" 2>&1
+          fi
+          
+          # 2. Limpiar archivos temporales antiguos
+          log_message "Limpiando archivos temporales con más de 30 días..."
+          find /tmp -type f -atime +30 -delete
+          find /var/tmp -type f -atime +30 -delete
+          
+          # 3. Limpiar archivos de logs antiguos
+          log_message "Limpiando archivos de logs antiguos..."
+          find /var/log -name "*.gz" -type f -mtime +90 -delete
+          find /var/log -name "*.old" -type f -mtime +30 -delete
+          
+          # 4. Verificar espacio en disco
+          log_message "Estado actual del almacenamiento:"
+          df -h | tee -a "$LOG_FILE"
+          
+          # 5. Verificar servicios críticos
+          log_message "Verificando servicios críticos..."
+          SERVICIOS=("ssh" "cron" "systemd-journald")
+          
+          for servicio in "${SERVICIOS[@]}"; do
+              if systemctl is-active --quiet "$servicio" 2>/dev/null; then
+                  log_message "✓ Servicio $servicio está activo"
+              elif systemctl list-unit-files | grep -q "$servicio"; then
+                  log_message "✗ Servicio $servicio está instalado pero no activo"
+              fi
+          done
+          
+          log_message "Mantenimiento mensual completado."
+          log_message "==================================================="
+          
+          exit 0
+    
+    - name: Crear script de actualización de base de datos local
+      copy:
+        dest: /usr/local/scripts/update-local-db.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          # Script de actualización de base de datos local para ejemplo3-cron-reboot.yml
+          
+          LOG_FILE="/var/log/db-updates.log"
+          DB_DIR="/var/lib/local-db"
+          TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+          
+          # Función para registrar mensajes
+          log_message() {
+              echo "[$(date +"%Y-%m-%d %H:%M:%S")] $1" | tee -a "$LOG_FILE"
+          }
+          
+          # Crear directorio de base de datos si no existe
+          mkdir -p "$DB_DIR"
+          
+          # Iniciar log
+          log_message "Iniciando actualización de base de datos local"
+          
+          # Simular actualización de una base de datos local
+          log_message "Verificando integridad de la base de datos..."
+          
+          # Crear archivo de índice con la fecha actual
+          INDEX_FILE="$DB_DIR/index-$(date +%Y%m%d).dat"
+          touch "$INDEX_FILE"
+          
+          # Simular procesamiento de datos
+          log_message "Procesando nuevos datos..."
+          echo "Última actualización: $TIMESTAMP" > "$INDEX_FILE"
+          echo "Registros procesados: $((RANDOM % 500 + 50))" >> "$INDEX_FILE"
+          echo "Estado: Actualizado" >> "$INDEX_FILE"
+          
+          # Simular limpieza de datos antiguos
+          log_message "Limpiando datos antiguos..."
+          find "$DB_DIR" -name "index-*.dat" -type f -mtime +7 -delete
+          
+          # Actualizar archivo de estado
+          STATUS_FILE="$DB_DIR/status.dat"
+          echo "Última actualización: $TIMESTAMP" > "$STATUS_FILE"
+          echo "Estado: OK" >> "$STATUS_FILE"
+          
+          # Finalizar log
+          log_message "Actualización de base de datos local completada con éxito"
+          log_message "Próxima actualización programada: $(date -d "tomorrow" +"%Y-%m-%d %H:%M:%S")"
+          
+          exit 0
+    
+    - name: Crear directorio para backups
+      file:
+        path: /backup
+        state: directory
+        mode: '0755'
+    
+    - name: Crear directorio para logs de cron-tasks
+      file:
+        path: /var/log/cron-tasks
+        state: directory
+        mode: '0755'
+    
+    - name: Crear directorio para base de datos local
+      file:
+        path: /var/lib/local-db
+        state: directory
+        mode: '0755'

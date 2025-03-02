@@ -1,0 +1,53 @@
+---
+# ejemplo3-cron-reboot.yml
+# Este playbook muestra cómo configurar tareas especiales como @reboot
+# y cómo trabajar con archivos crontab separados
+
+- name: Configuración de tareas cron especiales
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Crear script de arranque
+      copy:
+        content: |
+          #!/bin/bash
+          echo "Iniciando servicios personalizados después del arranque..."
+          date >> /var/log/startup-custom.log
+          # Iniciar servicio personalizado
+          systemctl start mi-servicio-personalizado || echo "Error al iniciar servicio" >> /var/log/startup-custom.log
+        dest: /usr/local/scripts/startup.sh
+        mode: '0755'
+        
+    - name: Configurar tarea que se ejecute al arranque del sistema
+      cron:
+        name: "Iniciar servicios después del arranque"
+        special_time: reboot
+        job: "/usr/local/scripts/startup.sh"
+        state: present
+        
+    - name: Configurar tarea de mantenimiento mensual
+      cron:
+        name: "Mantenimiento mensual"
+        special_time: monthly
+        job: "/usr/local/scripts/monthly-maintenance.sh"
+        cron_file: maintenance
+        state: present
+        
+    - name: Configurar tarea que se ejecute diariamente
+      cron:
+        name: "Actualizar base de datos local"
+        special_time: daily
+        job: "/usr/local/scripts/update-local-db.sh"
+        state: present
+        
+    - name: Listar tareas cron configuradas (solo funciona en entornos interactivos)
+      shell: crontab -l
+      register: crontab_content
+      changed_when: false
+      failed_when: false
+      
+    - name: Mostrar tareas cron configuradas
+      debug:
+        var: crontab_content.stdout_lines
+      when: crontab_content.rc == 0
