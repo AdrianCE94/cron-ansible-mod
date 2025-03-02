@@ -1,4 +1,4 @@
-# # Estudio del Módulo cron de Ansible
+# Estudio del Módulo cron de Ansible
 
 ## 1. Nombre del módulo: `cron`
 
