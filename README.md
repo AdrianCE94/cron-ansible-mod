@@ -50,9 +50,12 @@ El módulo `cron` de Ansible permite gestionar tareas programadas (cron jobs) en
         minute: "0"
         job: "/usr/local/scripts/limpieza_tmp.sh"
         state: present
+
 ```
 
 **Resultado esperado**:
+  ![ej1](ejemplo1cron.png)
+  ![ej2](ejemplo1-1cron.png)
 
 ### Ejemplo 2: Gestión avanzada de tareas cron
 
@@ -60,12 +63,8 @@ El módulo `cron` de Ansible permite gestionar tareas programadas (cron jobs) en
 
 ```yaml
 ---
-# ejemplo2-cron-avanzado.yml
-# Este playbook muestra características avanzadas del módulo cron:
-# - Crear tareas para un usuario específico
-# - Configurar variables de entorno
-# - Usar expresiones crontab completas
-# - Eliminar tareas existentes
+# ejemplo2-cron-avanzado.yml 
+# Este playbook muestra características avanzadas del módulo cron
 
 - name: Gestión avanzada de tareas cron
   hosts: all
@@ -94,11 +93,8 @@ El módulo `cron` de Ansible permite gestionar tareas programadas (cron jobs) en
         weekday: "0"    # Domingo
         hour: "3"
         minute: "30"
-        job: "/usr/local/scripts/backup.sh /home /backup"
+        job: "BACKUP_OPTS='--compress --exclude-vcs' LOG_LEVEL='info' /usr/local/scripts/backup.sh /home /backup"
         cron_file: weekly-backup
-        env:
-          BACKUP_OPTS: "--compress --exclude-vcs"
-          LOG_LEVEL: "info"
         state: present
         
     - name: Añadir tarea con expresión crontab completa
@@ -117,6 +113,7 @@ El módulo `cron` de Ansible permite gestionar tareas programadas (cron jobs) en
 ```
 
 **Resultado esperado**:
+![ej3](ejemplo2cron.png)
 
 
 ### Ejemplo 3: Tareas cron especiales
@@ -126,6 +123,16 @@ El módulo `cron` de Ansible permite gestionar tareas programadas (cron jobs) en
 ```yaml
 ---
 # ejemplo3-cron-reboot.yml
+# Este playbook muestra cómo configurar tareas especiales como @reboot
+# y cómo trabajar con archivos crontab separados
+
+- name: Configuración de tareas cron especiales
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Crear script de arranque---
+# ejemplo3-cron-reboot.yml 
 # Este playbook muestra cómo configurar tareas especiales como @reboot
 # y cómo trabajar con archivos crontab separados
 
@@ -158,6 +165,7 @@ El módulo `cron` de Ansible permite gestionar tareas programadas (cron jobs) en
         special_time: monthly
         job: "/usr/local/scripts/monthly-maintenance.sh"
         cron_file: maintenance
+        user: root  # Añadido el parámetro user requerido
         state: present
         
     - name: Configurar tarea que se ejecute diariamente
@@ -180,7 +188,8 @@ El módulo `cron` de Ansible permite gestionar tareas programadas (cron jobs) en
 ```
 
 **Resultado esperado**:
-
+![ej4](ejemplo3cron.png)
+![ej5](ejemploSalida.png)
 
 ## Inventario de Ansible
 
