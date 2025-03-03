@@ -1,5 +1,5 @@
 ---
-# ejemplo3-cron-reboot.yml
+# ejemplo3-cron-reboot.yml 
 # Este playbook muestra cómo configurar tareas especiales como @reboot
 # y cómo trabajar con archivos crontab separados
 
@@ -32,6 +32,7 @@
         special_time: monthly
         job: "/usr/local/scripts/monthly-maintenance.sh"
         cron_file: maintenance
+        user: root  # Añadido el parámetro user requerido
         state: present
         
     - name: Configurar tarea que se ejecute diariamente
