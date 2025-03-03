@@ -1,5 +1,5 @@
 ---
-# ejemplo2-cron-avanzado.yml (corregido)
+# ejemplo2-cron-avanzado.yml 
 # Este playbook muestra características avanzadas del módulo cron
 
 - name: Gestión avanzada de tareas cron
