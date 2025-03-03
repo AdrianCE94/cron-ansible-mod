@@ -1,10 +1,6 @@
 ---
-# ejemplo2-cron-avanzado.yml
-# Este playbook muestra características avanzadas del módulo cron:
-# - Crear tareas para un usuario específico
-# - Configurar variables de entorno
-# - Usar expresiones crontab completas
-# - Eliminar tareas existentes
+# ejemplo2-cron-avanzado.yml (corregido)
+# Este playbook muestra características avanzadas del módulo cron
 
 - name: Gestión avanzada de tareas cron
   hosts: all
@@ -33,11 +29,8 @@
         weekday: "0"    # Domingo
         hour: "3"
         minute: "30"
-        job: "/usr/local/scripts/backup.sh /home /backup"
+        job: "BACKUP_OPTS='--compress --exclude-vcs' LOG_LEVEL='info' /usr/local/scripts/backup.sh /home /backup"
         cron_file: weekly-backup
-        env:
-          BACKUP_OPTS: "--compress --exclude-vcs"
-          LOG_LEVEL: "info"
         state: present
         
     - name: Añadir tarea con expresión crontab completa
